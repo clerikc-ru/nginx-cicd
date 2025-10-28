@@ -1,0 +1,57 @@
+name: Deploy Nginx Application
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Kubernetes
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      run: |
+        mkdir -p ~/.kube
+        echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
+        kubectl cluster-info
+        
+    - name: Deploy Ingress Nginx
+      run: |
+        # Устанавливаем ingress-nginx
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+        
+        # Ждем запуска
+        sleep 30
+        kubectl wait --namespace ingress-nginx \
+          --for=condition=ready pod \
+          --selector=app.kubernetes.io/component=controller \
+          --timeout=180s
+        
+        # обновит существующий сервис
+        kubectl apply -f k8s/ingress-service.yaml
+        
+    - name: Deploy Application
+      run: |
+        kubectl apply -f k8s/
+        
+    - name: Verify Setup
+      run: |
+        echo "=== Сервисы ingress-nginx ==="
+        kubectl get svc -n ingress-nginx
+        
+        echo "=== Поды ==="
+        kubectl get pods -A
+        
+        echo "=== Ingress правила ==="
+        kubectl get ingress
+        kubectl describe ingress nginx-ingress
+        
+        echo "=== Проверка доступности ==="
+        echo "Тестируем по IP с Host header:"
+        curl -H "Host: 185.8.22.53" http://185.8.22.53:30080/ || echo "Проверка завершена"

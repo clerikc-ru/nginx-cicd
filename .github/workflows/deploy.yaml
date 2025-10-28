@@ -20,11 +20,11 @@ jobs:
         mkdir -p ~/.kube
         echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
         kubectl cluster-info
-        
+
     - name: Deploy Ingress Nginx
       run: |
         # Устанавливаем ingress-nginx
-        kubectl apply -f https://raw.githubusercontent.com/kubernetes/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
         
         # Ждем запуска
         sleep 30

@@ -42,6 +42,13 @@ jobs:
         kubectl create configmap nginx-html --from-file=html/ -o yaml --dry-run=client > k8s/configmap-generated.yaml
         kubectl apply -f k8s/configmap-generated.yaml
         
+    - name: Restart application
+      run: |
+       kubectl rollout restart deployment/nginx-app
+       kubectl rollout status deployment/nginx-app --timeout=90s
+
+
+
     - name: Deploy Application
       run: |
         # Применяем остальные манифесты (кроме configmap.yaml)

@@ -20,7 +20,7 @@ jobs:
         mkdir -p ~/.kube
         echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
         kubectl cluster-info
-
+        
     - name: Deploy Ingress Nginx
       run: |
         # Устанавливаем ingress-nginx
@@ -33,25 +33,26 @@ jobs:
           --selector=app.kubernetes.io/component=controller \
           --timeout=180s
         
-        # обновит существующий сервис
+        # Применяем наш NodePort сервис
         kubectl apply -f k8s/ingress-service.yaml
+        
+    - name: Create ConfigMap from HTML files
+      run: |
+        # Создаем ConfigMap из папки html/
+        kubectl create configmap nginx-html --from-file=html/ -o yaml --dry-run=client > k8s/configmap-generated.yaml
+        kubectl apply -f k8s/configmap-generated.yaml
         
     - name: Deploy Application
       run: |
-        kubectl apply -f k8s/
+        # Применяем остальные манифесты (кроме configmap.yaml)
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl apply -f k8s/ingress.yaml
         
     - name: Verify Setup
       run: |
-        echo "=== Сервисы ingress-nginx ==="
-        kubectl get svc -n ingress-nginx
-        
-        echo "=== Поды ==="
-        kubectl get pods -A
-        
-        echo "=== Ingress правила ==="
-        kubectl get ingress
-        kubectl describe ingress nginx-ingress
+        echo "=== Проверка ConfigMap ==="
+        kubectl get configmap nginx-html -o yaml | head -20
         
         echo "=== Проверка доступности ==="
-        echo "Тестируем по IP с Host header:"
-        curl -H "Host: 185.8.22.53" http://185.8.22.53:30080/ || echo "Проверка завершена"
+        curl -s http://185.8.22.53:30080/ | head -10

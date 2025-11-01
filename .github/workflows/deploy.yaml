@@ -23,7 +23,7 @@ jobs:
         
     - name: Deploy Ingress Nginx
       run: |
-        # Устанавливаем ingress-nginx
+        # Устанавливаемм ingress-nginx
         kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
         
         # Ждем запуска
